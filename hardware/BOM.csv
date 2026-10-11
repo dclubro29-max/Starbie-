@@ -1,0 +1,6 @@
+Category,Part,Status,Notes
+Controller,RP2040-compatible MCU,TBD,Choose actual package or module
+Display,Circular SPI LCD,TBD,Choose exact size voltage and pinout
+Input,Pushbuttons x2,TBD,Navigation
+Power,Power management,TBD,Needs proper engineering review
+PCB,Custom motherboard,Not designed,Requires native KiCad files
