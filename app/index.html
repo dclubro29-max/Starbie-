@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Starbie | Simulator</title><link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+<header><h1>Starbie</h1><p>Interactive device simulator · software prototype</p></header>
+<section class="workspace">
+<div class="device"><div class="screen" id="screen" aria-live="polite"></div></div>
+<div class="panel">
+<h2>Simulator controls</h2>
+<div class="controls"><button id="back">Back</button><button id="next">Next</button><button id="select">Select</button></div>
+<label>Battery <output id="batteryLabel">85%</output><input id="battery" type="range" min="0" max="100" value="85"></label>
+<label>Brightness <output id="brightnessLabel">80%</output><input id="brightness" type="range" min="20" max="100" value="80"></label>
+<label><input id="charging" type="checkbox"> Charging</label>
+<h3>Event log</h3><pre id="log" aria-live="polite"></pre>
+</div>
+</section>
+<footer>Prototype only · no real motherboard connected</footer>
+</main><script src="script.js"></script>
+</body></html>
