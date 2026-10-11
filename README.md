@@ -15,3 +15,13 @@ Open `app/index.html` in a browser. No install needed.
 2. Modify the code yourself and test it.
 3. Choose exact hardware parts and create a real KiCad schematic/PCB.
 4. Record your actual progress and decisions for the reel.
+
+## Visual concept
+
+![Starbie software and PCB learning concept](docs/starbie-concept.svg)
+
+This is an illustration, **not a photo of completed hardware**.
+
+## KiCad files
+
+The `hardware/starbie-led-test.kicad_sch` and `hardware/starbie-led-test.kicad_pcb` files are a **preliminary LED/resistor exercise board**, not the Starbie motherboard. They have not been opened or verified in KiCad, and should not be fabricated without review. The Starbie motherboard remains to be designed.
