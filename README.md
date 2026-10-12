@@ -1,37 +1,53 @@
 # Starbie
 
-Early-stage software simulator and hardware planning workspace for a small circular-screen device.
+**Starbie** is a compact circular-screen electronics project exploring an interactive display, physical navigation buttons and a custom control board.
 
-## Current status
-- Working browser-based **software simulator**, not firmware running on hardware.
-- Hardware documentation is **planning only**. No completed motherboard schematic, routed PCB, or fabricated board is included.
-- This starter code was generated with AI assistance. Any Hack Club time logs should reflect only work actually done by the participant.
+## Project overview
 
-## Run
-Open `app/index.html` in a browser. No install needed.
+The repository contains three connected areas:
 
-## Suggested next steps
-1. Try the simulator and identify a real issue or improvement.
-2. Modify the code yourself and test it.
-3. Choose exact hardware parts and create a real KiCad schematic/PCB.
-4. Record your actual progress and decisions for the reel.
+| Area | Files | Purpose |
+| --- | --- | --- |
+| Interactive interface | [app/](app/) | Browser-based UI simulator |
+| Application logic | [firmware/starbie_core.py](firmware/starbie_core.py) | Python state-machine prototype |
+| Electronics | [hardware/](hardware/) | Candidate components and KiCad learning files |
 
-## Visual concept
+## Explore the interface
 
-![Starbie software and PCB learning concept](docs/starbie-concept.svg)
+Open `app/index.html` in a browser. The simulator runs locally without a build step.
 
-This is an illustration, **not a photo of completed hardware**.
+## Application logic
 
-## KiCad files
+The Python prototype models three interface modes (clock, status, settings), screen brightness and battery-status values.
 
-The `hardware/starbie-led-test.kicad_sch` and `hardware/starbie-led-test.kicad_pcb` files are a **preliminary LED/resistor exercise board**, not the Starbie motherboard. They have not been opened or verified in KiCad, and should not be fabricated without review. The Starbie motherboard remains to be designed.
+Run the unit tests:
 
-## Engineering additions
+```bash
+python -m unittest discover -s tests -v
+```
 
-- [Candidate bill of materials](hardware/BOM.csv): subsystem roles, quantities and outstanding part selection
-- [Architecture proposal](docs/ARCHITECTURE.md): power, display, input and controller blocks
-- [Python state-logic prototype](firmware/starbie_core.py): portable UI state model, **not flashed firmware**
-- [Automated test source](tests/test_starbie_core.py): run with `python -m unittest discover -s tests -v`
-- [Validation and evidence checklist](docs/VALIDATION.md): distinguishes planned tests from observed results
+GitHub Actions is configured to run these tests on pushes and pull requests. Check the [Actions tab](../../actions) for execution results.
 
-The repository now includes a fuller design proposal and code prototype. A complete Starbie motherboard schematic, routed board, physical validation and production-ready BOM are still outstanding. No specific time-log duration is implied by these additions.
+## Electronics development
+
+The proposed architecture connects an RP2040-class controller to a circular SPI display and two buttons, with regulated power.
+
+- [System architecture](docs/ARCHITECTURE.md)
+- [Candidate bill of materials](hardware/BOM.csv)
+- [Hardware design notes](hardware/README.md)
+- [PCB requirements](docs/PCB_REQUIREMENTS.md)
+- [Pin mapping worksheet](docs/PIN_MAPPING_TEMPLATE.csv)
+- [Validation plan](docs/VALIDATION.md)
+
+The existing KiCad files are an LED/resistor exercise. A complete Starbie board design and physical prototype are separate development milestones.
+
+## Project process
+
+- [Build journal template](docs/BUILD_JOURNAL_TEMPLATE.md)
+- [Submission readiness checklist](docs/REVIEW_CHECKLIST.md)
+
+## Visual direction
+
+![Starbie concept](docs/starbie-concept.svg)
+
+*Concept illustration of the intended interface and hardware direction.*
