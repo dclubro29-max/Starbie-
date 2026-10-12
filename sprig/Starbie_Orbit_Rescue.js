@@ -1266,11 +1266,11 @@ const missions = [
 ];
 
 // Controls:
-// W / I / J = jump, S / K = duck for one frame, A = shop,
-// D = switch mission, L = buy upgrade, P = pause, J = restart after crash.
+// Sprig physical buttons: W/I/J jump, S/K duck, A shop, L buy, D pause.
+// J restarts after a crash. Only Sprig-supported input keys are used.
 // The player can practice freely; completing missions unlocks the next.
 let score=0, best=0, coins=0, wallet=0, distance=0, lives=3;
-let shield=0, magnet=0, jumpTicks=0, invulnerable=0;
+let shield=0, magnet=0, jumpTicks=0, duckTicks=0, invulnerable=0;
 let tickCount=0, spawnCountdown=8, pace=195, timer=null;
 let alive=false, paused=false, shopOpen=false, missionIndex=0;
 let obstacleCount=0, jumps=0, coinsThisRun=0, streak=0;
@@ -1289,7 +1289,7 @@ function renderHud() {
   clearText();
   addText("S:"+score+" B:"+best, {x:0,y:0,color:color`0`});
   addText("$:"+wallet+" HP:"+lives, {x:0,y:1,color:color`0`});
-  addText("M:"+(missionIndex+1)+"/80", {x:12,y:1,color:color`0`});
+  addText("M:"+(missionIndex+1), {x:12,y:1,color:color`0`});
   if (shopOpen) {
     addText("SHOP", {x:7,y:3,color:color`0`});
     addText("L: BUY SHIELD", {x:2,y:5,color:color`0`});
@@ -1299,7 +1299,7 @@ function renderHud() {
   }
   if (paused) {
     addText("PAUSED", {x:6,y:5,color:color`0`});
-    addText("P RESUME", {x:4,y:7,color:color`0`});
+    addText("D RESUME", {x:4,y:7,color:color`0`});
     return;
   }
   if (!alive) {
@@ -1322,6 +1322,7 @@ function resetRun() {
   shield=shieldLevel;
   magnet=magnetLevel;
   jumpTicks=0;
+  duckTicks=0;
   invulnerable=0;
   tickCount=0;
   spawnCountdown=8;
@@ -1349,8 +1350,7 @@ function jump() {
 }
 function duck() {
   if (!isActive()) return;
-  const hero=getFirst(D);
-  if (hero && jumpTicks===0) hero.y=10;
+  if (jumpTicks===0) duckTicks=3;
 }
 function togglePause() {
   if (!alive || shopOpen) return;
@@ -1389,10 +1389,10 @@ onInput("i",jump);
 onInput("j",()=>{if(!alive)resetRun();else jump();});
 onInput("s",duck);
 onInput("k",duck);
-onInput("p",togglePause);
+onInput("d",togglePause);
 onInput("a",toggleShop);
 onInput("l",buyShield);
-onInput("d",selectNextMission);
+// Missions advance automatically after meeting their objectives.
 function overlaps(hero,type) {
   return getTile(hero.x,hero.y).some(obj=>obj.type===type);
 }
@@ -1509,7 +1509,8 @@ function updateJump(hero) {
     else hero.y=6;
     jumpTicks--;
   } else {
-    hero.y=9;
+    hero.y=duckTicks>0 ? 10 : 9;
+    if (duckTicks>0) duckTicks--;
   }
 }
 function updateSpeed() {
