@@ -1,6 +1,6 @@
 /*
-@title: Starbie Dino Quest
-@description: Endless runner with 80 missions, coins, shield, magnet, shop, high scores and speed progression.
+@title: Starbie Dino Dash
+@description: One-button Sprig dinosaur runner with score, hazards, and increasing speed.
 @author: Patrick Draghina
 @tags: ['arcade', 'endless', 'runner']
 */
@@ -1269,277 +1269,69 @@ const missions = [
 // Sprig physical buttons: W/I/J jump, S/K duck, A shop, L buy, D pause.
 // J restarts after a crash. Only Sprig-supported input keys are used.
 // The player can practice freely; completing missions unlocks the next.
-let score=0, best=0, coins=0, wallet=0, distance=0, lives=3;
-let shield=0, magnet=0, jumpTicks=0, duckTicks=0, invulnerable=0;
-let tickCount=0, spawnCountdown=8, pace=195, timer=null;
-let alive=false, paused=false, shopOpen=false, missionIndex=0;
-let obstacleCount=0, jumps=0, coinsThisRun=0, streak=0;
-let shieldLevel=0, magnetLevel=0, jumpLevel=0;
-let message="", messageTicks=0;
+
+let score=0, best=0, tick=0, jumpTicks=0, gap=7, running=true;
+let pace=180, timer=null;
 const hazards=[C,R,B,F];
-const collectibles=[O,Q,U];
-function currentMission() {
-  return missions[missionIndex];
-}
-function writeMessage(value, duration) {
-  message=value;
-  messageTicks=duration;
-}
-function renderHud() {
+function hud() {
   clearText();
-  addText("S:"+score+" B:"+best, {x:0,y:0,color:color`0`});
-  addText("COINS:"+wallet+" HP:"+lives, {x:0,y:1,color:color`0`});
-  addText("M:"+(missionIndex+1), {x:12,y:1,color:color`0`});
-  if (shopOpen) {
-    addText("SHOP", {x:7,y:3,color:color`0`});
-    addText("L: BUY SHIELD", {x:2,y:5,color:color`0`});
-    addText("COST "+(10+shieldLevel*10), {x:3,y:6,color:color`0`});
-    addText("A: CLOSE", {x:3,y:8,color:color`0`});
-    return;
+  addText("SCORE "+score,{x:0,y:0,color:color`0`});
+  addText("BEST "+best,{x:0,y:1,color:color`0`});
+  if (!running) {
+    addText("GAME OVER",{x:4,y:5,color:color`3`});
+    addText("W RESTART",{x:4,y:7,color:color`0`});
   }
-  if (paused) {
-    addText("PAUSED", {x:6,y:5,color:color`0`});
-    addText("D RESUME", {x:4,y:7,color:color`0`});
-    return;
-  }
-  if (!alive) {
-    addText("GAME OVER", {x:4,y:5,color:color`3`});
-    addText("J RESTART", {x:3,y:7,color:color`0`});
-    return;
-  }
-  if (messageTicks>0) addText(message,{x:1,y:3,color:color`0`});
 }
-function resetRun() {
-  if (timer!==null) clearInterval(timer);
+function restart() {
+  if(timer!==null) clearInterval(timer);
   setMap(scene);
   addSprite(2,9,D);
-  addSprite(6,2,H);
-  addSprite(13,3,H);
-  score=0;
-  coins=0;
-  distance=0;
-  lives=3;
-  shield=shieldLevel;
-  magnet=magnetLevel;
-  jumpTicks=0;
-  duckTicks=0;
-  invulnerable=0;
-  tickCount=0;
-  spawnCountdown=8;
-  pace=195;
-  obstacleCount=0;
-  jumps=0;
-  coinsThisRun=0;
-  streak=0;
-  alive=true;
-  paused=false;
-  shopOpen=false;
-  writeMessage("W JUMP  S DUCK",14);
-  renderHud();
+  addSprite(5,2,H);
+  addSprite(12,3,H);
+  score=0;tick=0;jumpTicks=0;gap=7;pace=180;running=true;
+  hud();
   timer=setInterval(step,pace);
 }
-function isActive() {
-  return alive && !paused && !shopOpen;
-}
-function jump() {
-  if (!isActive()) return;
-  if (jumpTicks===0) {
-    jumpTicks=6+jumpLevel;
-    jumps++;
-  }
-}
-function duck() {
-  if (!isActive()) return;
-  if (jumpTicks===0) duckTicks=3;
-}
-function togglePause() {
-  if (!alive || shopOpen) return;
-  paused=!paused;
-  renderHud();
-}
-function toggleShop() {
-  if (!alive) return;
-  shopOpen=!shopOpen;
-  renderHud();
-}
-function buyShield() {
-  if (!shopOpen) return;
-  const cost=10+shieldLevel*10;
-  if (wallet>=cost && shieldLevel<5) {
-    wallet-=cost;
-    shieldLevel++;
-    shield++;
-    writeMessage("SHIELD UPGRADED",10);
-  } else {
-    writeMessage("NEED MORE COINS",10);
-  }
-  renderHud();
-}
-function selectNextMission() {
-  if (isActive()) {
-    writeMessage("FINISH CURRENT RUN",12);
-    renderHud();
-    return;
-  }
-  missionIndex=(missionIndex+1)%missions.length;
-  renderHud();
-}
-onInput("w",jump);
-onInput("i",jump);
-onInput("j",()=>{if(!alive)resetRun();else jump();});
-onInput("s",duck);
-onInput("k",duck);
-onInput("d",togglePause);
-onInput("a",toggleShop);
-onInput("l",buyShield);
-// Missions advance automatically after meeting their objectives.
-function overlaps(hero,type) {
-  return getTile(hero.x,hero.y).some(obj=>obj.type===type);
-}
-function rewardCoin() {
-  coins++;
-  wallet++;
-  coinsThisRun++;
-  score+=10;
-  if (coinsThisRun%5===0) {
-    score+=20;
-    writeMessage("COIN COMBO +20",7);
-  }
-}
-function moveItems() {
-  const types=[C,R,B,F,O,Q,U,H];
-  for (const type of types) {
-    for (const item of getAll(type)) {
-      if (item.x===0) {
-        item.remove();
-        if (hazards.includes(type)) {
-          obstacleCount++;
-          streak++;
-          score+=2;
-        }
-      } else {
-        item.x-=1;
-      }
-    }
-  }
-}
-function collectItems(hero) {
-  for (const item of getTile(hero.x,hero.y)) {
-    if (item.type===O) {
-      item.remove();
-      rewardCoin();
-    } else if (item.type===Q) {
-      item.remove();
-      shield=Math.min(5,shield+1);
-      writeMessage("SHIELD +1",8);
-    } else if (item.type===U) {
-      item.remove();
-      magnet=Math.min(5,magnet+1);
-      writeMessage("MAGNET +1",8);
-    }
-  }
-  if (magnet>0) {
-    for (const item of getAll(O)) {
-      if (Math.abs(item.x-hero.x)<=1 && Math.abs(item.y-hero.y)<=2) {
-        item.remove();
-        rewardCoin();
-      }
-    }
-  }
-}
-function checkDamage(hero) {
-  if (invulnerable>0) return;
-  for (const kind of hazards) {
-    if (!overlaps(hero,kind)) continue;
-    for (const item of getTile(hero.x,hero.y)) {
-      if (item.type===kind) item.remove();
-    }
-    if (shield>0) {
-      shield--;
-      invulnerable=6;
-      writeMessage("SHIELD SAVED YOU",8);
-    } else {
-      lives--;
-      invulnerable=7;
-      streak=0;
-      writeMessage("OUCH! HP "+lives,8);
-      if (lives<=0) endRun();
-    }
-    return;
-  }
-}
-function endRun() {
-  alive=false;
-  if (score>best) best=score;
-  renderHud();
-}
-function missionComplete() {
-  const m=currentMission();
-  if (score>=m.targetScore && coinsThisRun>=m.targetCoins && distance>=m.minDistance) {
-    wallet+=m.bonusCoins;
-    score+=m.bonusScore;
-    writeMessage("MISSION COMPLETE!",14);
-    if (missionIndex<missions.length-1) missionIndex++;
-    coinsThisRun=0;
-    distance=0;
-  }
-}
-function spawnHazard() {
-  const m=currentMission();
-  const style=m.obstacleStyle;
-  let kind=C;
-  if (style==="rock") kind=R;
-  if (style==="crate") kind=B;
-  if (style==="bird") kind=F;
-  if (style==="mixed") kind=hazards[Math.floor(Math.random()*hazards.length)];
-  if (Math.random()<0.25) kind=hazards[Math.floor(Math.random()*hazards.length)];
-  addSprite(15,kind===F?8:9,kind);
-  const chance=Math.random();
-  if (chance<0.50) addSprite(15,6,O);
-  else if (chance<0.56) addSprite(15,6,Q);
-  else if (chance<0.60) addSprite(15,6,U);
-  spawnCountdown=m.spawnGap+Math.floor(Math.random()*4);
-}
-function updateJump(hero) {
-  if (jumpTicks>0) {
-    const top=6+jumpLevel;
-    const elapsed=top-jumpTicks;
-    if (elapsed===0 || elapsed===top-1) hero.y=8;
-    else if (elapsed===1 || elapsed===top-2) hero.y=7;
-    else hero.y=6;
-    jumpTicks--;
-  } else {
-    hero.y=duckTicks>0 ? 10 : 9;
-    if (duckTicks>0) duckTicks--;
-  }
-}
-function updateSpeed() {
-  const target=Math.max(78,195-Math.floor(distance/30)*7);
-  if (target===pace) return;
-  pace=target;
-  clearInterval(timer);
-  timer=setInterval(step,pace);
-}
+onInput("w",()=>{
+  if(!running){restart();return;}
+  if(jumpTicks===0) jumpTicks=6;
+});
 function step() {
-  if (!isActive()) return;
-  tickCount++;
-  distance++;
+  if(!running)return;
+  tick++;
   const hero=getFirst(D);
-  if (!hero) return;
-  updateJump(hero);
-  moveItems();
-  collectItems(hero);
-  if (invulnerable>0) invulnerable--;
-  checkDamage(hero);
-  if (!alive) return;
-  if (tickCount%2===0) score++;
-  if (score>best) best=score;
-  if (tickCount%17===0) addSprite(15,2+(tickCount%2),H);
-  spawnCountdown--;
-  if (spawnCountdown<=0) spawnHazard();
-  missionComplete();
-  updateSpeed();
-  if (messageTicks>0) messageTicks--;
-  renderHud();
+  if(!hero)return;
+  if(jumpTicks>0){
+    hero.y=(jumpTicks===6||jumpTicks===1)?8:(jumpTicks===5||jumpTicks===2)?7:6;
+    jumpTicks--;
+  }else hero.y=9;
+  for(const type of [C,R,B,F,H]){
+    for(const item of getAll(type)){
+      if(item.x===0){item.remove();if(type!==H)score+=5;}
+      else item.x-=1;
+    }
+  }
+  if(getTile(hero.x,hero.y).some(item=>hazards.includes(item.type))){
+    running=false;
+    best=Math.max(best,score);
+    hud();
+    return;
+  }
+  if(tick%2===0)score++;
+  best=Math.max(best,score);
+  if(tick%17===0)addSprite(15,2,H);
+  gap--;
+  if(gap<=0){
+    const type=hazards[Math.floor(Math.random()*hazards.length)];
+    addSprite(15,type===F?8:9,type);
+    gap=Math.max(6,10-Math.floor(score/80))+Math.floor(Math.random()*3);
+  }
+  const newPace=Math.max(85,180-Math.floor(score/50)*8);
+  if(newPace!==pace){
+    pace=newPace;
+    clearInterval(timer);
+    timer=setInterval(step,pace);
+  }
+  hud();
 }
-resetRun();
+restart();
