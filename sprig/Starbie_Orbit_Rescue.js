@@ -1288,7 +1288,7 @@ function writeMessage(value, duration) {
 function renderHud() {
   clearText();
   addText("S:"+score+" B:"+best, {x:0,y:0,color:color`0`});
-  addText("$:"+wallet+" HP:"+lives, {x:0,y:1,color:color`0`});
+  addText("COINS:"+wallet+" HP:"+lives, {x:0,y:1,color:color`0`});
   addText("M:"+(missionIndex+1), {x:12,y:1,color:color`0`});
   if (shopOpen) {
     addText("SHOP", {x:7,y:3,color:color`0`});
