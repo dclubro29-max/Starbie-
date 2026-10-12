@@ -1,16 +1,11 @@
 /*
-@title: Starbie Dino Dash
-@description: A colorful endless runner. Jump over cacti, rocks and crates; dodge flying birds, and survive increasing speed.
+@title: Starbie Dino Adventure
+@description: A colorful endless runner with clouds, coins, birds, obstacles, jump and duck controls.
 @author: Patrick Draghina
-@tags: ['endless', 'arcade']
+@tags: ['endless', 'arcade', 'runner']
 */
-const dino = "d";
-const cactus = "c";
-const rock = "r";
-const crate = "b";
-const bird = "f";
-const floor = "g";
-
+const dino = "d", cactus = "c", rock = "r", crate = "b";
+const bird = "f", coin = "o", cloud = "h", grass = "g", sky = "k";
 setLegend(
 [dino, bitmap`
 ................
@@ -30,8 +25,6 @@ setLegend(
 .....04040......
 .....00000......`],
 [cactus, bitmap`
-................
-.......DD.......
 .......DD.......
 .......DD.......
 ...DD..DD.......
@@ -45,10 +38,10 @@ setLegend(
 .......DD.......
 .......DD.......
 .......DD.......
+.......DD.......
+.......DD.......
 ................`],
 [rock, bitmap`
-................
-................
 ................
 ................
 ................
@@ -62,12 +55,12 @@ setLegend(
 .1111111111111..
 ..11111111111...
 ....11111111....
+................
+................
 ................`],
 [crate, bitmap`
 ................
 ................
-................
-................
 ..CCCCCCCCCCCC..
 ..C999999999C...
 ..C9C99999C9C...
@@ -78,10 +71,11 @@ setLegend(
 ..C9C99999C9C...
 ..C999999999C...
 ..CCCCCCCCCCCC..
+................
+................
 ................
 ................`],
 [bird, bitmap`
-................
 ................
 ................
 ...000.....000..
@@ -96,28 +90,80 @@ setLegend(
 .....0000000....
 ................
 ................
+................
 ................`],
-[floor, bitmap`
-6666666666666666
-6666666666666666
-6666666666666666
-6666666666666666
-6666666666666666
-6666666666666666
-6666666666666666
-6666666666666666
-6666666666666666
-6666666666666666
-6666666666666666
-6666666666666666
-6666666666666666
-6666666666666666
-6666666666666666
-6666666666666666`]
+[coin, bitmap`
+................
+.....666666.....
+....66666666....
+...6666666666...
+..666666666666..
+..666666666666..
+..666660066666..
+..666660066666..
+..666660066666..
+..666660066666..
+..666666666666..
+..666666666666..
+...6666666666...
+....66666666....
+.....666666.....
+................`],
+[cloud, bitmap`
+................
+................
+................
+................
+......1111......
+....11111111....
+..111111111111..
+.11111111111111.
+1111111111111111
+1111111111111111
+.11111111111111.
+................
+................
+................
+................
+................`],
+[grass, bitmap`
+4444444444444444
+4444444444444444
+4444444444444444
+4444444444444444
+4444444444444444
+4444444444444444
+4444444444444444
+4444444444444444
+4444444444444444
+4444444444444444
+4444444444444444
+4444444444444444
+4444444444444444
+4444444444444444
+4444444444444444
+4444444444444444`],
+[sky, bitmap`
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777`]
 );
-setBackground(floor);
+setBackground(sky);
 setSolids([]);
-const stage = map`
+const scene = map`
 ................
 ................
 ................
@@ -125,100 +171,110 @@ const stage = map`
 ................
 ................
 ................
-................`;
-const obstacles = [cactus, rock, crate, bird];
-let score = 0;
-let best = 0;
-let alive = false;
-let jumping = 0;
-let ticks = 0;
-let nextObstacle = 7;
-let pace = 210;
-let loop = null;
+................
+................
+................
+gggggggggggggggg
+gggggggggggggggg`;
+const hazards = [cactus, rock, crate, bird];
+let points = 0, record = 0, coins = 0, jumpTime = 0;
+let alive = false, ducking = false, ticks = 0, spawnIn = 8, pace = 190;
+let timer = null;
 
-function hud() {
+function showScore() {
   clearText();
-  addText("DINO DASH", { x: 1, y: 0, color: color`0` });
-  addText("S:" + score + " BEST:" + best, { x: 1, y: 1, color: color`0` });
+  addText("SCORE " + points, {x: 1, y: 0, color: color`0`});
+  addText("BEST " + record, {x: 12, y: 0, color: color`0`});
+  addText("COINS " + coins, {x: 1, y: 1, color: color`0`});
   if (!alive) {
-    addText("GAME OVER", { x: 4, y: 5, color: color`3` });
-    addText("J RESTART", { x: 4, y: 7, color: color`0` });
+    addText("GAME OVER", {x: 5, y: 6, color: color`3`});
+    addText("J TO RESTART", {x: 3, y: 8, color: color`0`});
   }
 }
-
-function start() {
-  if (loop !== null) clearInterval(loop);
-  setMap(stage);
-  addSprite(2, 6, dino);
-  score = 0;
-  alive = true;
-  jumping = 0;
+function restart() {
+  if (timer !== null) clearInterval(timer);
+  setMap(scene);
+  addSprite(2, 9, dino);
+  addSprite(4, 3, cloud);
+  addSprite(12, 2, cloud);
+  points = 0;
+  coins = 0;
+  jumpTime = 0;
+  ducking = false;
   ticks = 0;
-  nextObstacle = 7;
-  pace = 210;
-  hud();
-  loop = setInterval(step, pace);
+  spawnIn = 8;
+  pace = 190;
+  alive = true;
+  showScore();
+  timer = setInterval(step, pace);
 }
-
 function jump() {
-  if (alive && jumping === 0) jumping = 5;
+  if (alive && jumpTime === 0) jumpTime = 6;
 }
 onInput("w", jump);
 onInput("i", jump);
-onInput("j", () => { if (alive) jump(); else start(); });
+onInput("s", () => { if (alive) ducking = true; });
+onInput("k", () => { if (alive) ducking = true; });
+onInput("j", () => { if (!alive) restart(); else jump(); });
 
-function collide(hero) {
-  return getTile(hero.x, hero.y).some(sprite => obstacles.includes(sprite.type));
+function hit(hero) {
+  return getTile(hero.x, hero.y).some(s => hazards.includes(s.type));
 }
-
 function step() {
   if (!alive) return;
   ticks++;
   const hero = getFirst(dino);
   if (!hero) return;
-
-  if (jumping > 0) {
-    hero.y = jumping === 5 || jumping === 1 ? 5 : 4;
-    jumping--;
+  if (jumpTime > 0) {
+    hero.y = jumpTime === 6 || jumpTime === 1 ? 8 :
+             jumpTime === 5 || jumpTime === 2 ? 7 : 6;
+    jumpTime--;
   } else {
-    hero.y = 6;
+    hero.y = ducking ? 10 : 9;
   }
+  ducking = false;
 
-  // Move obstacles. Every sprite advances exactly one tile per tick.
-  for (const item of obstacles) {
-    for (const obj of getAll(item)) {
+  // Move obstacles and collect coins.
+  for (const type of [...hazards, coin, cloud]) {
+    for (const obj of getAll(type)) {
       if (obj.x === 0) {
         obj.remove();
-        score++;
-        best = Math.max(score, best);
       } else {
         obj.x -= 1;
       }
     }
   }
-
-  if (collide(hero)) {
+  for (const item of getTile(hero.x, hero.y)) {
+    if (item.type === coin) {
+      item.remove();
+      coins++;
+      points += 25;
+    }
+  }
+  if (hit(hero)) {
     alive = false;
-    hud();
+    record = Math.max(record, points);
+    showScore();
     return;
   }
+  // Points grow with survival time; extra points for collecting coins.
+  if (ticks % 2 === 0) points += 1;
+  record = Math.max(record, points);
 
-  nextObstacle--;
-  if (nextObstacle <= 0) {
-    const kind = obstacles[Math.floor(Math.random() * obstacles.length)];
-    const y = kind === bird ? 4 : 6;
-    addSprite(15, y, kind);
-    nextObstacle = Math.max(5, 9 - Math.floor(score / 4)) + Math.floor(Math.random() * 3);
+  if (ticks % 15 === 0) addSprite(15, 2 + (ticks % 2), cloud);
+  spawnIn--;
+  if (spawnIn <= 0) {
+    const type = hazards[Math.floor(Math.random() * hazards.length)];
+    addSprite(15, type === bird ? 8 : 9, type);
+    if (Math.random() < 0.55) addSprite(15, 5, coin);
+    spawnIn = Math.max(6, 10 - Math.floor(points / 45)) + Math.floor(Math.random() * 3);
   }
-
-  // Speed increases every five successfully dodged obstacles.
-  const newPace = Math.max(85, 210 - Math.floor(score / 5) * 12);
-  if (newPace !== pace) {
-    pace = newPace;
-    clearInterval(loop);
-    loop = setInterval(step, pace);
+  const nextPace = Math.max(85, 190 - Math.floor(points / 30) * 9);
+  if (nextPace !== pace) {
+    pace = nextPace;
+    clearInterval(timer);
+    timer = setInterval(step, pace);
   }
-  hud();
+  showScore();
 }
-
-start();
+restart();
