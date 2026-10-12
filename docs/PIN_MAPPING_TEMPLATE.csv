@@ -1,0 +1,11 @@
+Signal,MCU pin,Peripheral pin,Voltage,Direction,Status,Datasheet reference
+SPI_SCK,,,,MCU to LCD,Not selected,
+SPI_MOSI,,,,MCU to LCD,Not selected,
+LCD_CS,,,,MCU to LCD,Not selected,
+LCD_DC,,,,MCU to LCD,Not selected,
+LCD_RESET,,,,MCU to LCD,Not selected,
+LCD_BACKLIGHT,,,,MCU to LCD driver,Not selected,
+BUTTON_NEXT,,,,Input to MCU,Not selected,
+BUTTON_SELECT,,,,Input to MCU,Not selected,
+POWER_3V3,,,,Power,Not selected,
+GND,,,,Power return,Not selected,
