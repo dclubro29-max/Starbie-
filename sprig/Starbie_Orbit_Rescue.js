@@ -1,189 +1,156 @@
 /*
-@title: Starbie Orbit Rescue
-@description: Collect stars and navigate seven asteroid mazes to activate escape portals.
+@title: Starbie Dino Dash
+@description: An original endless dinosaur runner inspired by classic offline jumping games. Jump over cacti and beat your high score!
 @author: Patrick Draghina
-@tags: ['puzzle', 'maze']
+@tags: ['endless', 'arcade']
 */
-const player = "p";
-const wall = "w";
-const star = "s";
-const goal = "g";
+const dino = "d";
+const cactus = "c";
+const ground = "g";
+
 setLegend(
-  [player, bitmap`
+  [dino, bitmap`
 ................
-.......33.......
-......3333......
-.....333333.....
-....33333333....
-...3333333333...
-..333333333333..
-.33333333333333.
-.33333333333333.
-..333333333333..
-...3333333333...
-....33333333....
-.....333333.....
-......3333......
-.......33.......
+.......000000...
+......02222220..
+......02022020..
+......02222220..
+......02222200..
+......0222220...
+......0222220...
+...000222220....
+..0222222220....
+.02222222220....
+.0222222220.....
+..000222000.....
+.....02020......
+.....02020......
+.....00000......`],
+  [cactus, bitmap`
+................
+.......DD.......
+.......DD.......
+.......DD.......
+...DD..DD.......
+...DD..DD..DD...
+...DDDDDD..DD...
+.....DDDDDDDD...
+.......DDDD.....
+.......DD.......
+.......DD.......
+.......DD.......
+.......DD.......
+.......DD.......
+.......DD.......
 ................`],
-  [wall, bitmap`
-5555555555555555
-5555555555555555
-55LLLL5555LLLL55
-55LLLL5555LLLL55
-5555555555555555
-5555555555555555
-55LLLL5555LLLL55
-55LLLL5555LLLL55
-5555555555555555
-5555555555555555
-55LLLL5555LLLL55
-55LLLL5555LLLL55
-5555555555555555
-5555555555555555
-5555555555555555
-5555555555555555`],
-  [star, bitmap`
-................
-.......6........
-.......6........
-......666.......
-...666666666....
-.....66666......
-......666.......
-......666.......
-.....66.66......
-....66...66.....
-...66.....66....
-................
-................
-................
-................
-................`],
-  [goal, bitmap`
-................
-....77777777....
-...77......77...
-..77........77..
-.77..........77.
-.7............7.
-.7............7.
-.7............7.
-.7............7.
-.7............7.
-.77..........77.
-..77........77..
-...77......77...
-....77777777....
-................
-................`]
+  [ground, bitmap`
+LLLLLLLLLLLLLLLL
+1111111111111111
+LLLLLLLLLLLLLLLL
+1111111111111111
+LLLLLLLLLLLLLLLL
+1111111111111111
+LLLLLLLLLLLLLLLL
+1111111111111111
+LLLLLLLLLLLLLLLL
+1111111111111111
+LLLLLLLLLLLLLLLL
+1111111111111111
+LLLLLLLLLLLLLLLL
+1111111111111111
+LLLLLLLLLLLLLLLL
+1111111111111111`]
 );
-setSolids([player, wall]);
-const levels = [
-  map`
-wwwwwwwwww
-wp..s....w
-w.ww.ww..w
-w....w...w
-w.ww...w.w
-w...ww...w
-w.s.....gw
-wwwwwwwwww`,
-  map`
-wwwwwwwwww
-wp.....s.w
-w.wwww.w.w
-w......w.w
-w.ww.ww..w
-w..s.....w
-w....ww.gw
-wwwwwwwwww`,
-  map`
-wwwwwwwwww
-wp..w....w
-w...w.s..w
-w.w...ww.w
-w...w....w
-w.s...w..w
-w....w..gw
-wwwwwwwwww`,
-  map`
-wwwwwwwwww
-wp....w..w
-w.ww..w.s.w
-w..w......w
-w..w.ww...w
-w.s......ww
-w...ww..gw
-wwwwwwwwww`,
-  map`
-wwwwwwwwww
-wp...w...w
-w.ww...s.w
-w..w.ww..w
-w....w...w
-w.s....w.w
-w...ww..gw
-wwwwwwwwww`,
-  map`
-wwwwwwwwww
-wp...w.s.w
-w.w......w
-w...ww.w.w
-ww.w......w
-w..s..ww.w
-w......g.w
-wwwwwwwwww`,
-  map`
-wwwwwwwwww
-wp.w.....w
-w..w.s.w.w
-w....w...w
-w.w..w.w.w
-w.s......w
-w....ww.gw
-wwwwwwwwww`
-];
-let level = 0;
-let complete = false;
-function loadLevel() {
-  clearText();
-  setMap(levels[level]);
-  complete = false;
-  showHud();
+
+setBackground("g");
+setSolids([]);
+const blank = map`
+................
+................
+................
+................
+................
+................
+................
+................`;
+let score = 0;
+let best = 0;
+let running = true;
+let jumpTicks = 0;
+let spawnTimer = 0;
+let speedCounter = 0;
+
+function startGame() {
+  setMap(blank);
+  addSprite(2, 6, dino);
+  score = 0;
+  running = true;
+  jumpTicks = 0;
+  spawnTimer = 7;
+  speedCounter = 0;
+  drawHud();
 }
-function showHud() {
-  if (complete) return;
+
+function drawHud() {
   clearText();
-  addText("Sector " + (level + 1) + "/7", { x: 1, y: 0, color: color`3` });
-  addText("Stars: " + getAll(star).length, { x: 1, y: 1, color: color`6` });
-}
-function move(dx, dy) {
-  if (complete) return;
-  const p = getFirst(player);
-  if (!p) return;
-  p.x += dx;
-  p.y += dy;
-  const current = getFirst(player);
-  const tile = getTile(current.x, current.y);
-  tile.filter(t => t.type === star).forEach(t => t.remove());
-  if (tile.some(t => t.type === goal) && getAll(star).length === 0) {
-    if (level === levels.length - 1) {
-      complete = true;
-      clearText();
-      addText("MISSION COMPLETE", { x: 1, y: 5, color: color`6` });
-      addText("J TO REPLAY", { x: 3, y: 7, color: color`3` });
-    } else {
-      level++;
-      loadLevel();
-    }
-  } else {
-    showHud();
+  addText("DINO DASH", { x: 1, y: 0, color: color`0` });
+  addText("S:" + score + " B:" + best, { x: 1, y: 1, color: color`0` });
+  if (!running) {
+    addText("GAME OVER", { x: 4, y: 5, color: color`3` });
+    addText("J = RESTART", { x: 3, y: 7, color: color`0` });
   }
 }
-onInput("w", () => move(0, -1));
-onInput("s", () => move(0, 1));
-onInput("a", () => move(-1, 0));
-onInput("d", () => move(1, 0));
-onInput("j", () => { if (complete) level = 0; loadLevel(); });
-loadLevel();
+
+function jump() {
+  if (!running) return;
+  if (jumpTicks === 0) jumpTicks = 4;
+}
+
+onInput("w", jump);
+onInput("i", jump);
+onInput("j", () => { if (!running) startGame(); else jump(); });
+
+function tick() {
+  if (!running) return;
+  speedCounter++;
+
+  // Jump is deliberately two tiles high at its peak.
+  const hero = getFirst(dino);
+  if (!hero) return;
+  if (jumpTicks > 0) {
+    hero.y = jumpTicks === 4 || jumpTicks === 1 ? 5 : 4;
+    jumpTicks--;
+  } else {
+    hero.y = 6;
+  }
+
+  // Scroll all cacti one cell to the left.
+  const obstacles = getAll(cactus);
+  for (const obj of obstacles) {
+    if (obj.x === 0) {
+      obj.remove();
+      score++;
+      if (score > best) best = score;
+    } else {
+      obj.x -= 1;
+    }
+  }
+
+  // Collision only occurs if dinosaur and cactus occupy the same tile.
+  if (getAll(cactus).some(obj => obj.x === hero.x && obj.y === hero.y)) {
+    running = false;
+    drawHud();
+    return;
+  }
+
+  spawnTimer--;
+  if (spawnTimer <= 0) {
+    addSprite(15, 6, cactus);
+    // Increase difficulty gently as the player progresses.
+    spawnTimer = Math.max(5, 9 - Math.floor(score / 5)) + (speedCounter % 3);
+  }
+  drawHud();
+}
+
+startGame();
+setInterval(tick, 230);
