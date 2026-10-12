@@ -1,6 +1,9 @@
-Category,Part,Status,Notes
-Controller,RP2040-compatible MCU,TBD,Choose actual package or module
-Display,Circular SPI LCD,TBD,Choose exact size voltage and pinout
-Input,Pushbuttons x2,TBD,Navigation
-Power,Power management,TBD,Needs proper engineering review
-PCB,Custom motherboard,Not designed,Requires native KiCad files
+Category,Item,Quantity,Specification,Design role,Status,Verification needed
+Controller,RP2040-class controller,1,3.3 V logic microcontroller or development module,Run UI and manage peripherals,Candidate,Select exact board or IC and pinout
+Display,Circular SPI TFT display,1,3.3 V-compatible interface subject to module datasheet,Show clock and application screens,Candidate,Confirm resolution controller connector and voltage
+Input,Momentary pushbuttons,2,Normally-open tactile switches,User navigation and selection,Planned,Choose footprints and GPIO wiring
+Power,USB input and regulation,1,5 V USB input with appropriate 3.3 V regulation,Provide safe system power,Architecture proposed,Calculate peak current and select regulator and protection
+Passives,Decoupling capacitors,As required,Values per selected IC datasheets,Supply filtering,Planned,Determine values and footprints
+PCB,Custom Starbie motherboard,1,Size and mounting defined after component selection,Integrate electronics,Design pending,Create schematic route board and run ERC DRC
+Mechanical,Enclosure and display mounting,1,Circular-screen device concept,Hold PCB display and controls,Concept,Confirm mechanical dimensions
+Software,Browser UI simulator,1,HTML CSS JavaScript,Demonstrate proposed interaction,Present in repository,Test locally and document limitations
