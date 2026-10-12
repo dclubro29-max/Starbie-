@@ -1,32 +1,35 @@
 /*
 @title: Starbie Dino Dash
-@description: An original endless dinosaur runner inspired by classic offline jumping games. Jump over cacti and beat your high score!
+@description: A colorful endless runner. Jump over cacti, rocks and crates; dodge flying birds, and survive increasing speed.
 @author: Patrick Draghina
 @tags: ['endless', 'arcade']
 */
 const dino = "d";
 const cactus = "c";
-const ground = "g";
+const rock = "r";
+const crate = "b";
+const bird = "f";
+const floor = "g";
 
 setLegend(
-  [dino, bitmap`
+[dino, bitmap`
 ................
-.......000000...
-......02222220..
-......02022020..
-......02222220..
-......02222200..
-......0222220...
-......0222220...
-...000222220....
-..0222222220....
-.02222222220....
-.0222222220.....
-..000222000.....
-.....02020......
-.....02020......
+.......444444...
+......44444444..
+......44044044..
+......44444444..
+......44444400..
+......4444440...
+......4444440...
+...444444440....
+..4444444440....
+.44444444440....
+.4444444440.....
+..000444000.....
+.....04040......
+.....04040......
 .....00000......`],
-  [cactus, bitmap`
+[cactus, bitmap`
 ................
 .......DD.......
 .......DD.......
@@ -43,28 +46,78 @@ setLegend(
 .......DD.......
 .......DD.......
 ................`],
-  [ground, bitmap`
-LLLLLLLLLLLLLLLL
-1111111111111111
-LLLLLLLLLLLLLLLL
-1111111111111111
-LLLLLLLLLLLLLLLL
-1111111111111111
-LLLLLLLLLLLLLLLL
-1111111111111111
-LLLLLLLLLLLLLLLL
-1111111111111111
-LLLLLLLLLLLLLLLL
-1111111111111111
-LLLLLLLLLLLLLLLL
-1111111111111111
-LLLLLLLLLLLLLLLL
-1111111111111111`]
+[rock, bitmap`
+................
+................
+................
+................
+................
+................
+................
+......1111......
+....11111111....
+...111LL1111....
+..111LLLL1111...
+.1111111111111..
+.1111111111111..
+..11111111111...
+....11111111....
+................`],
+[crate, bitmap`
+................
+................
+................
+................
+..CCCCCCCCCCCC..
+..C999999999C...
+..C9C99999C9C...
+..C99C999C99C...
+..C999CC9999C...
+..C999CC9999C...
+..C99C999C99C...
+..C9C99999C9C...
+..C999999999C...
+..CCCCCCCCCCCC..
+................
+................`],
+[bird, bitmap`
+................
+................
+................
+...000.....000..
+..03330...03330.
+.033333000333330
+.033333333333330
+..0333333333330.
+...03333333330..
+....033333330...
+.....0333330....
+......03030.....
+.....0000000....
+................
+................
+................`],
+[floor, bitmap`
+6666666666666666
+6666666666666666
+6666666666666666
+6666666666666666
+6666666666666666
+6666666666666666
+6666666666666666
+6666666666666666
+6666666666666666
+6666666666666666
+6666666666666666
+6666666666666666
+6666666666666666
+6666666666666666
+6666666666666666
+6666666666666666`]
 );
-
-setBackground("g");
+setBackground(floor);
 setSolids([]);
-const blank = map`
+const stage = map`
 ................
 ................
 ................
@@ -73,84 +126,99 @@ const blank = map`
 ................
 ................
 ................`;
+const obstacles = [cactus, rock, crate, bird];
 let score = 0;
 let best = 0;
-let running = true;
-let jumpTicks = 0;
-let spawnTimer = 0;
-let speedCounter = 0;
+let alive = false;
+let jumping = 0;
+let ticks = 0;
+let nextObstacle = 7;
+let pace = 210;
+let loop = null;
 
-function startGame() {
-  setMap(blank);
-  addSprite(2, 6, dino);
-  score = 0;
-  running = true;
-  jumpTicks = 0;
-  spawnTimer = 7;
-  speedCounter = 0;
-  drawHud();
-}
-
-function drawHud() {
+function hud() {
   clearText();
   addText("DINO DASH", { x: 1, y: 0, color: color`0` });
-  addText("S:" + score + " B:" + best, { x: 1, y: 1, color: color`0` });
-  if (!running) {
+  addText("S:" + score + " BEST:" + best, { x: 1, y: 1, color: color`0` });
+  if (!alive) {
     addText("GAME OVER", { x: 4, y: 5, color: color`3` });
-    addText("J = RESTART", { x: 3, y: 7, color: color`0` });
+    addText("J RESTART", { x: 4, y: 7, color: color`0` });
   }
 }
 
-function jump() {
-  if (!running) return;
-  if (jumpTicks === 0) jumpTicks = 4;
+function start() {
+  if (loop !== null) clearInterval(loop);
+  setMap(stage);
+  addSprite(2, 6, dino);
+  score = 0;
+  alive = true;
+  jumping = 0;
+  ticks = 0;
+  nextObstacle = 7;
+  pace = 210;
+  hud();
+  loop = setInterval(step, pace);
 }
 
+function jump() {
+  if (alive && jumping === 0) jumping = 5;
+}
 onInput("w", jump);
 onInput("i", jump);
-onInput("j", () => { if (!running) startGame(); else jump(); });
+onInput("j", () => { if (alive) jump(); else start(); });
 
-function tick() {
-  if (!running) return;
-  speedCounter++;
+function collide(hero) {
+  return getTile(hero.x, hero.y).some(sprite => obstacles.includes(sprite.type));
+}
 
-  // Jump is deliberately two tiles high at its peak.
+function step() {
+  if (!alive) return;
+  ticks++;
   const hero = getFirst(dino);
   if (!hero) return;
-  if (jumpTicks > 0) {
-    hero.y = jumpTicks === 4 || jumpTicks === 1 ? 5 : 4;
-    jumpTicks--;
+
+  if (jumping > 0) {
+    hero.y = jumping === 5 || jumping === 1 ? 5 : 4;
+    jumping--;
   } else {
     hero.y = 6;
   }
 
-  // Scroll all cacti one cell to the left.
-  const obstacles = getAll(cactus);
-  for (const obj of obstacles) {
-    if (obj.x === 0) {
-      obj.remove();
-      score++;
-      if (score > best) best = score;
-    } else {
-      obj.x -= 1;
+  // Move obstacles. Every sprite advances exactly one tile per tick.
+  for (const item of obstacles) {
+    for (const obj of getAll(item)) {
+      if (obj.x === 0) {
+        obj.remove();
+        score++;
+        best = Math.max(score, best);
+      } else {
+        obj.x -= 1;
+      }
     }
   }
 
-  // Collision only occurs if dinosaur and cactus occupy the same tile.
-  if (getAll(cactus).some(obj => obj.x === hero.x && obj.y === hero.y)) {
-    running = false;
-    drawHud();
+  if (collide(hero)) {
+    alive = false;
+    hud();
     return;
   }
 
-  spawnTimer--;
-  if (spawnTimer <= 0) {
-    addSprite(15, 6, cactus);
-    // Increase difficulty gently as the player progresses.
-    spawnTimer = Math.max(5, 9 - Math.floor(score / 5)) + (speedCounter % 3);
+  nextObstacle--;
+  if (nextObstacle <= 0) {
+    const kind = obstacles[Math.floor(Math.random() * obstacles.length)];
+    const y = kind === bird ? 4 : 6;
+    addSprite(15, y, kind);
+    nextObstacle = Math.max(5, 9 - Math.floor(score / 4)) + Math.floor(Math.random() * 3);
   }
-  drawHud();
+
+  // Speed increases every five successfully dodged obstacles.
+  const newPace = Math.max(85, 210 - Math.floor(score / 5) * 12);
+  if (newPace !== pace) {
+    pace = newPace;
+    clearInterval(loop);
+    loop = setInterval(step, pace);
+  }
+  hud();
 }
 
-startGame();
-setInterval(tick, 230);
+start();
